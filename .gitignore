@@ -50,3 +50,16 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+#lex-yacc temp files
+lex.yy.c
+y.tab.h
+y.tab.c
+
+#executable
+app
+
+#data/sample files
+data
+s.sed
+out.c
