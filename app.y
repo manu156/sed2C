@@ -2,28 +2,39 @@
 void yyerror (char *s);
 int yylex();
 
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
+
 void addfun(int fu);
 %}
-%union {int num;}
+
+%union {
+	int num;
+	int snum;
+	int mnum;
+	char *name;
+	char *reg;
+	char *str;
+	}
+	
 %start file
 
+%token <str> ACMD
+%token <str> CCMD
+%token <str> ICMD
+
 %token EQCMD
-%token ACMD
 %token BCMD
-%token CCMD
 %token DCMD
 %token CDCMD
+%token FNCMD
 %token GCMD
 %token CGCMD
 %token HCMD
 %token CHCMD
-%token ICMD
 %token LCMD
-%token CLCMD
 %token NCMD
 %token CNCMD
 %token PCMD
@@ -37,12 +48,22 @@ void addfun(int fu);
 %token CWCMD
 %token XCMD
 %token YCMD
-
-%token STAR
+%token ZPCMD
 %token NEG
+%token RSEP
+%token EFL
+
+%token FGCMD
+
+%token CROP
+%token CRED
+%token SSEP
 
 %token <num> number
-
+%token <mnum> Mnumber
+%token <snum> Snumber
+%token <name> label
+%token <reg> regex
 
 %%
 
@@ -51,17 +72,38 @@ file	: lines {printf("// main \n");}
 lines	: lines line {printf("//lines\n");}
 		| line {printf("//line\n");}
 		;
-line    : address NEG command {printf(" ");}
-	| address command {}
+line    : selector NEG command flags{printf(" ");}
+
+	| selector command flags{}
+	| NEG command flags{printf(" ");}
+	| selector NEG command{printf(" ");}
+	
 	| NEG command {}
+	| selector command {}
+	| command flags{}
+	
 	| command {}
+	
+	| label {printf("lbl:%s..\n", $1);}
         ;
-command	: EQCMD {addfun(EQCMD);}
-	| ACMD {addfun(ACMD);}
-	| BCMD {addfun(BCMD);}
-	| STAR {addfun(STAR);}
+selector	: regex RSEP regex {}
+		| regex RSEP number {}
+		| number RSEP regex {}
+		|number RSEP number {}
+		| regex Mnumber {}
+		| regex Snumber {}
+		| number Mnumber {}
+		| number Snumber {}
+		| regex {}
+		| number {printf("// add:%d\n ", $1);}
 	;
-address	: number {printf("// add:%d\n ", $1);}
+	
+	//TODO add all comands
+command	: EQCMD {addfun(EQCMD);}
+	| ACMD {printf(">>%s<<", $1);}
+	| BCMD {addfun(BCMD);}
+	;
+flags	: FGCMD {}
 	;
 
 %%
@@ -73,12 +115,14 @@ extern FILE *yyin;
     if ( argc != 2 )
         yyerror("You need 1 args: inputFileName");// outputFileName
     else {
+    //preprocess
 	printf("#include<stdio.h>\n#include<stdlib.h>\n");
 	printf("#define BLEN 1024\n\n");
 	printf("int main(int argc, char *argv[]) {\n");
 	printf("FILE *fin = fopen(argv[1], \"r\");\nFILE *fout = fopen(argv[2], \"w\");\n");
         printf("char buffer[BLEN];\nint n=1;\n");
         printf("while(fgets(buffer, BLEN, fin)) {\n");
+        
         yyin = fopen(argv[1], "r");
 //        yyout = fopen(argv[2], "w")
         yyparse();
@@ -95,6 +139,7 @@ void yyerror (char *s) {
 	fprintf (stderr, "%s\n", s);
 } 
 
+//TODO: add functiions for each command
 void addfun(int fu) {
 switch(fu) {
 	case EQCMD:
@@ -104,7 +149,6 @@ switch(fu) {
 	break;
 	case BCMD:
 	break;
-	case STAR:
-	break;
+
 }
 }
