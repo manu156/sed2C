@@ -10,7 +10,7 @@ int yylex();
 "="	{return EQCMD;}	/* = -- print current line number		*/
 "a\\\n".*	{yylval.str=(yytext+3); return ACMD;}	/* a -- append text after current line 	*/
 "a ".*	{yylval.str=(yytext+2); return ACMD;}
-"b"	{return BCMD;}	/* b -- branch to label				*/
+"b"([a-zA-Z])+	{yylval.name=(yytext+1); return BCMD;}	/* b -- branch to label				*/
 "c\\\n".*	{yylval.str=(yytext+3); return CCMD;}	/* c -- change current line 		*/
 "c ".*	{yylval.str=(yytext+2); return CCMD;}
 "d"	{return DCMD;}	/* d -- delete all of pattern space		*/
@@ -19,7 +19,7 @@ int yylex();
 "g"	{return GCMD;}	/* g -- copy hold space to pattern space	*/
 "G"	{return CGCMD;}	/* G -- append hold space to pattern space	*/
 "h"	{return HCMD;}	/* h -- copy pattern space to hold space	*/
-"H"	{return CHCMD;}	/* H -- append hold space to pattern space	*/
+"H"	{return CHCMD;}	/* H -- append pattern space to hold space	*/
 "i\\\n".*	{yylval.str=(yytext+3); return ICMD;}	/* i -- insert text before current line 	*/
 "i ".*	{yylval.str=(yytext+2); return ICMD;}
 "l"	{return LCMD;}	/* l -- print pattern space in escaped form	*/
@@ -28,7 +28,6 @@ int yylex();
 "p"	{return PCMD;}	/* p -- print pattern space to output		*/
 "P"	{return CPCMD;}	/* P -- print first line of pattern space	*/
 "q"	{return QCMD;}	/* q -- exit the stream editor			*/
-"r"	{return RCMD;}	/* r -- read in a file after current line */
 "s"	{return SCMD;}	/* s -- regular-expression substitute		*/
 "t"	{return TCMD;}	/* t -- branch on last substitute successful	*/
 "T"	{return CTCMD;}	/* T -- branch on last substitute failed	*/
