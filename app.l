@@ -44,8 +44,8 @@ int yylex();
 ","	{return RSEP;}
 "$"	{return EFL;}
 "/"(\\.|[^/])*"/"	{char *cp2= strdup(yytext+1);cp2[strlen(cp2)-1]='\0'; yylval.reg=cp2; return regex;}
-"~"[0-9]+	{yylval.mnum = atoi(yytext); return Mnumber;}
-"+"[0-9]+	{yylval.snum = atoi(yytext); return Snumber;}
+"~"[0-9]+	{yylval.mnum = atoi(yytext+1); return Mnumber;}
+"+"[0-9]+	{yylval.snum = atoi(yytext+1); return Snumber;}
 [0-9]+  {yylval.num = atoi(yytext); return number;}
 
 
@@ -53,13 +53,14 @@ int yylex();
 
 "{"	{return CROP;}
 "}"	{return CRED;}
-";"	{return SSEP;} //not portable
-
+";"	;//{return SSEP;} //not portable
+\n	;//{return NL;}
 "#".*\n	;
-[ \t\n]	;
+[ \t]	;
 .                      {ECHO; yyerror("unexpected character");}
 
 
 %%
 
 int yywrap (void) {return 1;}
+

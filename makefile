@@ -8,4 +8,5 @@ y.tab.c: app.y strs.h
 	yacc -d app.y
 
 clean: 
-	rm -rf lex.yy.c y.tab.c y.tab.h app app.dSYM
+	rm -rf lex.yy.c y.tab.c y.tab.h app app.dSYM a.out
+

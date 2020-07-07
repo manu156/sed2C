@@ -1,23 +1,16 @@
 %{
 void yyerror (char *s);
 int yylex();
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <regex.h> // VERIFY usage
-
 #include "strs.h"
+
 extern FILE *yyin;
 extern FILE *yyout;
 int nloop;
-
-char* RRregxp(char *reg1, char *reg2, int initial, int nloop, char *ts);
-char* RNregxp(char *reg, int nloop, char *ts);
-char* NRregxp(char *reg, int nloop, char *ts);
-
-void addfun(int fu, char *fst);
 
 extern const char *s_header;
 extern const char *s_macros;
@@ -33,6 +26,12 @@ extern const char *s_regec2;
 extern const char *s_regec3;
 extern const char *s_regec4;
 extern const char *s_regec5;
+
+char* RRregxp(char *reg1, char *reg2, int initial, int nloop, char *ts);
+char* RNregxp(char *reg, int nloop, char *ts);
+char* NRregxp(char *reg, int nloop, char *ts);
+
+void addfun(int fu, char *fst);
 
 %}
 
@@ -52,9 +51,13 @@ extern const char *s_regec5;
 %token <nlbl> BCMD
 %token <str> CCMD
 %token <str> ICMD
+%token <num> number
+%token <mnum> Mnumber
+%token <snum> Snumber
+%token <name> label
+%token <reg> regex
 
 %token EQCMD
-
 %token DCMD
 %token CDCMD
 %token FNCMD
@@ -80,59 +83,58 @@ extern const char *s_regec5;
 %token RSEP
 %token EFL
 
-%token FGCMD
+%token FGCMD //VERIFY
 
-%token CROP
+%token CROP //TO ADD
 %token CRED
-%token SSEP
-
-%token <num> number
-%token <mnum> Mnumber
-%token <snum> Snumber
-%token <name> label
-%token <reg> regex
-
+%token SSEP //NOT portable - VERIFY
+%token NL // VERIFY
+%error-verbose //DEBUG ONLY
 %%
 
-file	: lines {fprintf(yyout, "/*\t--file--\t*/\n");}
+file	: lines {}
+	|
 	;
-lines	: lines line {fprintf(yyout, "/*\t--lines--\t*/\n");}
-	| line {fprintf(yyout, "/*\t--line--\t*/\n");}
+lines	: lines line {}
+	| line {}
+	
 	;
-line    : selector command flags{fprintf(yyout, "}//SCF\n");}
 
-	| selector command {fprintf(yyout, "}//SC\n");}
-	| command flags{fprintf(yyout, "//CF\n");}
+line    : selector CROP file CRED {fprintf(yyout, "\t\t}\n");}
+	| CROP file CRED
+	| selector command {fprintf(yyout, "\t\t}\n");}
+
+	| command {fprintf(yyout, "\n");}
 	
-	| command{fprintf(yyout, "//C\n");}
+	| label {fprintf(yyout, "\n:%s\n", $1);} //TODO
 	
-	| label {fprintf(yyout, ":%s\n", $1);} //TODO
         ;
-selector	: regex RSEP regex NEG {char ts[1024], ts1[1024], ts2[1024];fprintf(yyout, "if(flags[%d]==0){%s}else if(flags[%d]==1){%s} else if(flags[%d]==2){%s}  if(!(flags[%d]==1 || flags[%d]==2)) {", nloop, RRregxp($1, $3, 0, nloop, ts), nloop,RRregxp($1, $3, 1, nloop, ts1), nloop, RRregxp($1, $3, 2, nloop, ts2), nloop, nloop);nloop++;}
-		| regex RSEP number NEG {char ts[1024]; fprintf(yyout, "if(flags[%d]==0){%s} else if(flags[%d]==1){if(n>=%d){flags[%d]=2;} } else if(flags[%d]==2){flags[%d]++;} if(!(flags[%d]==1||flags[%d]==2)){", nloop, RNregxp($1, nloop, ts),nloop, $3, nloop, nloop, nloop, nloop, nloop); nloop++;}
-		| number RSEP regex NEG {char ts[1024]; fprintf(yyout, "if(flags[%d]==0){if(n>=%d){flags[%d]=1;}} else if(flags[%d]==1){%s} else if(flags[%d]==2){flags[%d]++;} if(!(flags[%d]==1||flags[%d]==2)){", nloop, $1, nloop, nloop, NRregxp($3, nloop, ts), nloop, nloop, nloop, nloop); nloop++;}
-		| number RSEP number NEG {fprintf(yyout, "if(!(n>=%d && n<=%d)) { //adds\n ", $1, $3);nloop++;}
-		| regex Mnumber NEG {char ts[1024]; fprintf(yyout, "if(flags[%d]==0){%s} else if(flags[%d]==1){if(n%%%d==0){flags[%d]=2;} } else if(flags[%d]==2){flags[%d]++;} if(!(flags[%d]==1||flags[%d]==2)){", nloop, RNregxp($1, nloop, ts),nloop, $2, nloop, nloop, nloop, nloop, nloop); nloop++;}
-		| regex Snumber NEG  {char ts[1024]; fprintf(yyout, "if(flags[%d]==0){%s} if(flags[%d]>=1&&((flags[%d]-3)<%d)){flags[%d]++;} if(!(flags[%d]>=1&&((flags[%d]-3)<%d))){", nloop, RNregxp($1, nloop, ts), nloop, nloop, $2, nloop, nloop, nloop, $2); nloop++;}
-		| number Mnumber NEG {yyout, fprintf(yyout, "if(!(n>=%d && n<(%d+%d-%d%%%d))){", $1, $1, $1, $1, $2);}
-		| number Snumber NEG {yyout, fprintf(yyout, "if(!(n>=%d && (n-1)<(%d+%d))){", $1, $1, $2);} //VERIFY
-		| regex NEG {fprintf(yyout, "%s if(!tif){", s_regec5);}
-		| number NEG {fprintf(yyout, "if(n!=%d) { // add:%d\n ", $1, $1);}
+selector: regex RSEP regex NEG {char ts[1024], ts1[1024], ts2[1024];fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\telse if(flags[%d]==1){\n%s\t\t}\n\t\telse if(flags[%d]==2) {\n%s\t\t}\n\n\t\tif(!(flags[%d]==1 || flags[%d]==2)) {\n\t", nloop, RRregxp($1, $3, 0, nloop, ts), nloop,RRregxp($1, $3, 1, nloop, ts1), nloop, RRregxp($1, $3, 2, nloop, ts2), nloop, nloop);nloop++;}
+		| regex RSEP number NEG {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\telse if(flags[%d]==1) {\n\t\t\tif(n>=%d)\n\t\t\tflags[%d]=2;\n\t\t}\n\t\telse if(flags[%d]==2) {\n\t\t\tflags[%d]++;\n\t\t}\n\t\tif(!(flags[%d]==1||flags[%d]==2)) {\n\t", nloop, RNregxp($1, nloop, ts),nloop, $3, nloop, nloop, nloop, nloop, nloop); nloop++;}
+		| number RSEP regex NEG {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n\t\t\tif(n>=%d)\n\t\t\t\tflags[%d]=1;\n\t\t}\n\t\telse if(flags[%d]==1) {\n%s\t\t}\n\t\telse if(flags[%d]==2) {\n\t\t\tflags[%d]++;\n\t\t}\n\t\tif(!(flags[%d]==1||flags[%d]==2)) {\n\t", nloop, $1, nloop, nloop, NRregxp($3, nloop, ts), nloop, nloop, nloop, nloop); nloop++;}
+		| number RSEP number NEG {fprintf(yyout, "\t\tif(!(n>=%d && n<=%d)) {\n\t ", $1, $3);nloop++;}
+		| regex Mnumber NEG {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\telse if(flags[%d]==1) {\n\t\t\tif(n%%%d==0)\n\t\t\t\tflags[%d]=2;\n\t\t}\n\t\telse if(flags[%d]==2) {flags[%d]++;}\n\t\tif(!(flags[%d]==1||flags[%d]==2)) {\n\t", nloop, RNregxp($1, nloop, ts),nloop, $2, nloop, nloop, nloop, nloop, nloop); nloop++;}
+		| regex Snumber NEG  {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\tif(flags[%d]>=1&&((flags[%d]-3)<%d)) {flags[%d]++;}\n\t\tif(!(flags[%d]>=1&&((flags[%d]-3)<%d))) {\n\t", nloop, RNregxp($1, nloop, ts), nloop, nloop, $2, nloop, nloop, nloop, $2); nloop++;}
+		| number Mnumber NEG {yyout, fprintf(yyout, "\t\tif(!(n>=%d && n<=(%d+%d-%d%%%d))) {\n\t", $1, $1, $1, $1, $2);}
+		| number Snumber NEG {yyout, fprintf(yyout, "\t\tif(!(n>=%d && (n-1)<(%d+%d))) {\n\t", $1, $1, $2);} //VERIFY
+		| regex NEG {fprintf(yyout, "\t\tint tif=0;\n\t\t{\n\t\t\tchar regc[]=\"%s\";\n%s\t\tif(!tif) {\n\t", $1,  s_regec5);}
+		| number NEG {fprintf(yyout, "\t\tif(n!=%d) {\n\t", $1);}
 		
 		
 		//NORMAL
-		| regex RSEP regex {char ts[1024], ts1[1024], ts2[1024];fprintf(yyout, "if(flags[%d]==0){%s}else if(flags[%d]==1){%s} else if(flags[%d]==2){%s}  if(flags[%d]==1 || flags[%d]==2) {", nloop, RRregxp($1, $3, 0, nloop, ts), nloop,RRregxp($1, $3, 1, nloop, ts1), nloop, RRregxp($1, $3, 2, nloop, ts2), nloop, nloop);nloop++;}
-		| regex RSEP number {char ts[1024]; fprintf(yyout, "if(flags[%d]==0){%s} else if(flags[%d]==1){if(n>=%d){flags[%d]=2;} } else if(flags[%d]==2){flags[%d]++;} if(flags[%d]==1||flags[%d]==2){", nloop, RNregxp($1, nloop, ts),nloop, $3, nloop, nloop, nloop, nloop, nloop); nloop++;}
-		| number RSEP regex {char ts[1024]; fprintf(yyout, "if(flags[%d]==0){if(n>=%d){flags[%d]=1;}} else if(flags[%d]==1){%s} else if(flags[%d]==2){flags[%d]++;} if(flags[%d]==1||flags[%d]==2){", nloop, $1, nloop, nloop, NRregxp($3, nloop, ts), nloop, nloop, nloop, nloop); nloop++;}
-		| number RSEP number {fprintf(yyout, "if(n>=%d && n<=%d) { //adds\n ", $1, $3);nloop++;}
-		| regex Mnumber  {char ts[1024]; fprintf(yyout, "if(flags[%d]==0){%s} else if(flags[%d]==1){if(n%%%d==0){flags[%d]=2;} } else if(flags[%d]==2){flags[%d]++;} if(flags[%d]==1||flags[%d]==2){", nloop, RNregxp($1, nloop, ts),nloop, $2, nloop, nloop, nloop, nloop, nloop); nloop++;}
-		| regex Snumber  {char ts[1024]; fprintf(yyout, "if(flags[%d]==0){%s} if(flags[%d]>=1&&((flags[%d]-3)<%d)){flags[%d]++;", nloop, RNregxp($1, nloop, ts), nloop, nloop, $2, nloop); nloop++;}
-		| number Mnumber {yyout, fprintf(yyout, "if(n>=%d && n<(%d+%d-%d%%%d)){", $1, $1, $1, $1, $2);} //GNU ext / ext
-		| number Snumber {yyout, fprintf(yyout, "if(n>=%d && (n-1)<(%d+%d)){", $1, $1, $2);} // GNU ext / ext -- TODO: ALSO VERIFY
-		| regex {fprintf(yyout, "%s if(tif){", s_regec5);}
-		| number {fprintf(yyout, "if(n==%d) { // add:%d\n ", $1, $1);}
+		| regex RSEP regex {char ts[1024], ts1[1024], ts2[1024];fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\telse if(flags[%d]==1) {\n%s\t\t}\n\t\telse if(flags[%d]==2) {\n%s\t\t}\n\n\t\tif(flags[%d]==1 || flags[%d]==2) {\n", nloop, RRregxp($1, $3, 0, nloop, ts), nloop,RRregxp($1, $3, 1, nloop, ts1), nloop, RRregxp($1, $3, 2, nloop, ts2), nloop, nloop);nloop++;}
+		| regex RSEP number {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\telse if(flags[%d]==1) {\n\t\t\tif(n>=%d)\n\t\t\tflags[%d]=2;\n\t\t}\n\t\telse if(flags[%d]==2) {flags[%d]++;}\n\t\tif(flags[%d]==1||flags[%d]==2) {\n\t", nloop, RNregxp($1, nloop, ts),nloop, $3, nloop, nloop, nloop, nloop, nloop); nloop++;}
+		| number RSEP regex {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n\t\t\tif(n>=%d)\n\t\t\t\tflags[%d]=1;\n\t\t}\n\t\telse if(flags[%d]==1) {\n%s\t\t}\n\t\telse if(flags[%d]==2) {flags[%d]++;}\n\t\tif(flags[%d]==1||flags[%d]==2) {\n\t", nloop, $1, nloop, nloop, NRregxp($3, nloop, ts), nloop, nloop, nloop, nloop); nloop++;}
+		| number RSEP number {fprintf(yyout, "\t\tif(n>=%d && n<=%d) {\n", $1, $3);nloop++;}
+		| regex Mnumber  {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\telse if(flags[%d]==1) {\n\t\t\tif(n%%%d==0)\n\t\t\t\tflags[%d]=2;\n\t\t}\n\t\telse if(flags[%d]==2) {flags[%d]++;}\n\t\tif(flags[%d]==1||flags[%d]==2) {\n\t", nloop, RNregxp($1, nloop, ts),nloop, $2, nloop, nloop, nloop, nloop, nloop); nloop++;}
+		| regex Snumber  {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\tif(flags[%d]>=1&&((flags[%d]-3)<%d)) {\n\t\t\tflags[%d]++;\n\t", nloop, RNregxp($1, nloop, ts), nloop, nloop, $2, nloop); nloop++;}
+		| number Mnumber {yyout, fprintf(yyout, "\t\tif(n>=%d && n<=(%d+%d-%d%%%d)) {\n\t", $1, $1, $1, $1, $2);} //GNU ext / ext
+		| number Snumber {yyout, fprintf(yyout, "\t\tif(n>=%d && (n-1)<(%d+%d)) {\n\t", $1, $1, $2);} // GNU ext / ext -- TODO: ALSO VERIFY
+		| regex {fprintf(yyout, "\t\tint tif=0;\n\t\t{\n\t\t\tchar regc[]=\"%s\";\n%s\t\tif(tif) {\n\t", $1,  s_regec5);}
+		| number {fprintf(yyout, "\t\tif(n==%d) {\n\t", $1);}
 		;
 	
+
 	//TODO add all comands
 command	: EQCMD {addfun(EQCMD, NULL);}
 	| ACMD {addfun(ACMD, $1);}
@@ -152,7 +154,7 @@ command	: EQCMD {addfun(EQCMD, NULL);}
 	| PCMD {addfun(PCMD, NULL);}
 	| CPCMD {addfun(CPCMD, NULL);}
 	| QCMD {addfun(QCMD, NULL);}
-	| SCMD {} //TODO
+	| SCMD flags {} //TODO
 	| TCMD {addfun(TCMD, NULL);}
 	| CTCMD {addfun(CTCMD, NULL);}
 	| WCMD {addfun(WCMD, NULL);}
@@ -162,6 +164,8 @@ command	: EQCMD {addfun(EQCMD, NULL);}
 	| ZPCMD {addfun(ZPCMD, NULL);}
 	
 	;
+	
+
 flags	: FGCMD {}
 	;
 
@@ -171,7 +175,7 @@ flags	: FGCMD {}
 int main(int argc, char *argv[]) {
 	
 	if ( argc != 3 )
-		yyerror("You need 2 args: inputFileName outputFileName");
+		yyerror("You need 2 args: inputFileName outputFileName\n");
 	else {
 		int tmi=-1;
 		nloop=0;
@@ -211,13 +215,13 @@ char* RRregxp(char *reg1, char *reg2, int initial, int nloop, char *ts) {
 	//process
 	
 	if(initial==0) {
-		sprintf(ts, "int lpn=%d; char regc[]=\"%s\", regc2[]=\"%s\"; %s\n\n", nloop, reg1, reg2, s_regec1);
+		sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\", regc2[]=\"%s\";\n%s", nloop, reg1, reg2, s_regec1);
 	}
 	else if(initial==1) {
-		sprintf(ts, "int lpn=%d; char regc[]=\"%s\"; %s\n\n", nloop, reg2, s_regec2);
+		sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\";\n%s", nloop, reg2, s_regec2);
 	}
 	else {
-		sprintf(ts, "flags[%d]++;\n\n", nloop);
+		sprintf(ts, "\t\t\tflags[%d]++;\n", nloop);
 	}
 	//setting intial, final
 	
@@ -226,11 +230,11 @@ char* RRregxp(char *reg1, char *reg2, int initial, int nloop, char *ts) {
 }
 
 char* RNregxp(char *reg, int nloop, char *ts) {
-	sprintf(ts, "int lpn=%d; char regc[]=\"%s\"; %s\n\n", nloop, reg, s_regec3);
+	sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\";\n%s", nloop, reg, s_regec3);
 	return ts;
 }
 char* NRregxp(char *reg, int nloop, char *ts) {
-	sprintf(ts, "int lpn=%d; char regc[]=\"%s\"; %s\n\n", nloop, reg, s_regec4);
+	sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\";\n%s", nloop, reg, s_regec4);
 	return ts;
 }
 
@@ -240,87 +244,87 @@ char* NRregxp(char *reg, int nloop, char *ts) {
 void addfun(int fu, char *fst) {
 switch(fu) {
 	case EQCMD:
-	fprintf(yyout, "%s", s_eqcmd);
+	fprintf(yyout, "\t\t%s", s_eqcmd);
 	break;
 	case ACMD:
-	fprintf(yyout, "\t\tstrcat(buffer, \"%s\");\nstrcat(buffer,\"\\n\");\n", fst);
+	fprintf(yyout, "\t\tstrcat(buffer, \"%s\"); strcat(buffer,\"\\n\");\n", fst);
 	break;
 	case BCMD:
-	fprintf(yyout, "goto %s;", fst);
+	fprintf(yyout, "\t\tgoto %s;", fst);
 	break;
 	case CCMD:
-	fprintf(yyout, "\t\tstrcpy(buffer, \"%s\");\nstrcat(buffer,\"\\n\");\n", fst);
+	fprintf(yyout, "\t\tstrcpy(buffer, \"%s\"); strcat(buffer,\"\\n\");\n", fst);
 	break;
 	case DCMD:
 	//fprintf(yyout, "buffer[0]='\\0';\n");
-	fprintf(yyout, "n++;\ncontinue;\n");
+	fprintf(yyout, "\t\tn++; continue;\n");
 	break;
 	case CDCMD:
-	fprintf(yyout, "%s", s_cdcmd);
+	fprintf(yyout, "\t\t%s", s_cdcmd);
 	break;
 	case FNCMD:
-	fprintf(yyout, "printf(\"%%s\\n\", argv[1]);\n");
+	fprintf(yyout, "\t\tprintf(\"%%s\\n\", argv[1]);\n");
 	break;
 	case GCMD:
-	fprintf(yyout, "strcpy(buffer, holdsp);\n");
+	fprintf(yyout, "\t\tstrcpy(buffer, holdsp);\n");
 	break;
 	case CGCMD:
-	fprintf(yyout, "strcat(buffer, holdsp);\n");
+	fprintf(yyout, "\t\tstrcat(buffer, holdsp);\n");
 	break;
 	case HCMD:
-	fprintf(yyout, "strcat(holdsp, buffer);\n");
+	fprintf(yyout, "\t\tstrcat(holdsp, buffer);\n");
 	break;
 	case CHCMD:
-	fprintf(yyout, "strcat(holdsp, buffer);\n");
+	fprintf(yyout, "\t\tstrcat(holdsp, buffer);\n");
 	break;
 	case ICMD:
-	fprintf(yyout, "printf(\"%s\\n\");\n", fst);
+	fprintf(yyout, "\t\tprintf(\"%s\\n\");\n", fst);
 	break;
 	case LCMD://TODO: add formatting
-	fprintf(yyout, "%s", s_lcmd);
+	fprintf(yyout, "\t\t%s", s_lcmd);
 	break;
 	case NCMD:
-	fprintf(yyout, "%s", s_ncmd);
+	fprintf(yyout, "\t\t%s", s_ncmd);
 	break;
 	case CNCMD:
-	fprintf(yyout, "%s", s_cncmd);
+	fprintf(yyout, "\t\t%s", s_cncmd);
 	break;
 	case PCMD:
-	fprintf(yyout, "printf(\"%%s\", buffer);\n");
+	fprintf(yyout, "\t\tprintf(\"%%s\", buffer);\n");
 	break;
 	case CPCMD:
-	fprintf(yyout, "printf(\"%%*s\", strcspn(buffer, \"\\n\")+1, buffer);");
+	fprintf(yyout, "\t\tprintf(\"%%*s\", strcspn(buffer, \"\\n\")+1, buffer);");
 	break;
 	case QCMD:
-	fprintf(yyout, "return 0;");
+	fprintf(yyout, "\t\treturn 0;");
 	break;
 	
 	//TODO
 	case TCMD:
-	fprintf(yyout, " ");
+	fprintf(yyout, "\t\t");
 	break;
 	case CTCMD:
-	fprintf(yyout, " ");
+	fprintf(yyout, "\t\t");
 	break;
 	
 	//TODO
 	case WCMD:
-	fprintf(yyout, " ");
+	fprintf(yyout, "\t\t");
 	break;
 	case CWCMD:
-	fprintf(yyout, " ");
+	fprintf(yyout, "\t\t");
 	break;
 	
 	case XCMD:
-	fprintf(yyout, "char tmpbuff[BLEN];strcpy(tmpbuff, buffer);strcpy(buffer, holdsp); strcpy(holdsp, tmpbuff);\n");
+	fprintf(yyout, "\t\tchar tmpbuff[BLEN];strcpy(tmpbuff, buffer);strcpy(buffer, holdsp); strcpy(holdsp, tmpbuff);\n");
 	break;
 	
 	case YCMD://TODO
-	fprintf(yyout, " ");
+	fprintf(yyout, "\t\t");
 	break;
 	
 	case ZPCMD:
-	fprintf(yyout, "buffer[0]='\\0';");
+	fprintf(yyout, "\t\tbuffer[0]='\\0';");
 	break;
 	
 	
