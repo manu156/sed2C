@@ -60,6 +60,9 @@ y.tab.c
 app
 
 #data/sample files
+notes
 data
 s.sed
 out.c
+
+*.output
