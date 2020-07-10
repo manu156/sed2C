@@ -30,8 +30,9 @@ extern const char *s_regec5;
 char* RRregxp(char *reg1, char *reg2, int initial, int nloop, char *ts);
 char* RNregxp(char *reg, int nloop, char *ts);
 char* NRregxp(char *reg, int nloop, char *ts);
-
+char* rform(char *reg, char *ts);
 void addfun(int fu, char *fst);
+void ssube(char *strp);
 
 %}
 
@@ -116,8 +117,8 @@ selector: regex RSEP regex NEG {char ts[1024], ts1[1024], ts2[1024];fprintf(yyou
 		| regex Mnumber NEG {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\telse if(flags[%d]==1) {\n\t\t\tif(n%%%d==0)\n\t\t\t\tflags[%d]=2;\n\t\t}\n\t\telse if(flags[%d]==2) {flags[%d]++;}\n\t\tif(!(flags[%d]==1||flags[%d]==2)) {\n\t", nloop, RNregxp($1, nloop, ts),nloop, $2, nloop, nloop, nloop, nloop, nloop); nloop++;}
 		| regex Snumber NEG  {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\tif(flags[%d]>=1&&((flags[%d]-3)<%d)) {flags[%d]++;}\n\t\tif(!(flags[%d]>=1&&((flags[%d]-3)<%d))) {\n\t", nloop, RNregxp($1, nloop, ts), nloop, nloop, $2, nloop, nloop, nloop, $2); nloop++;}
 		| number Mnumber NEG {yyout, fprintf(yyout, "\t\tif(!(n>=%d && n<=(%d+%d-%d%%%d))) {\n\t", $1, $1, $1, $1, $2);}
-		| number Snumber NEG {yyout, fprintf(yyout, "\t\tif(!(n>=%d && (n-1)<(%d+%d))) {\n\t", $1, $1, $2);} //VERIFY
-		| regex NEG {fprintf(yyout, "\t\tint tif=0;\n\t\t{\n\t\t\tchar regc[]=\"%s\";\n%s\t\tif(!tif) {\n\t", $1,  s_regec5);}
+		| number Snumber NEG {yyout, fprintf(yyout, "\t\tif(!(n>=%d && (n-1)<(%d+%d))) {\n\t", $1, $1, $2);}
+		| regex NEG {char rtsn[1024]; fprintf(yyout, "\t\tint tif=0;\n\t\t{\n\t\t\tchar regc[]=\"%s\";\n%s\t\tif(!tif) {\n\t", rform($1, rtsn),  s_regec5);}
 		| number NEG {fprintf(yyout, "\t\tif(n!=%d) {\n\t", $1);}
 		
 		
@@ -128,9 +129,9 @@ selector: regex RSEP regex NEG {char ts[1024], ts1[1024], ts2[1024];fprintf(yyou
 		| number RSEP number {fprintf(yyout, "\t\tif(n>=%d && n<=%d) {\n", $1, $3);nloop++;}
 		| regex Mnumber  {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\telse if(flags[%d]==1) {\n\t\t\tif(n%%%d==0)\n\t\t\t\tflags[%d]=2;\n\t\t}\n\t\telse if(flags[%d]==2) {flags[%d]++;}\n\t\tif(flags[%d]==1||flags[%d]==2) {\n\t", nloop, RNregxp($1, nloop, ts),nloop, $2, nloop, nloop, nloop, nloop, nloop); nloop++;}
 		| regex Snumber  {char ts[1024]; fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\tif(flags[%d]>=1&&((flags[%d]-3)<%d)) {\n\t\t\tflags[%d]++;\n\t", nloop, RNregxp($1, nloop, ts), nloop, nloop, $2, nloop); nloop++;}
-		| number Mnumber {yyout, fprintf(yyout, "\t\tif(n>=%d && n<=(%d+%d-%d%%%d)) {\n\t", $1, $1, $1, $1, $2);} //GNU ext / ext
-		| number Snumber {yyout, fprintf(yyout, "\t\tif(n>=%d && (n-1)<(%d+%d)) {\n\t", $1, $1, $2);} // GNU ext / ext -- TODO: ALSO VERIFY
-		| regex {fprintf(yyout, "\t\tint tif=0;\n\t\t{\n\t\t\tchar regc[]=\"%s\";\n%s\t\tif(tif) {\n\t", $1,  s_regec5);}
+		| number Mnumber {yyout, fprintf(yyout, "\t\tif(n>=%d && n<=(%d+%d-%d%%%d)) {\n\t", $1, $1, $1, $1, $2);}
+		| number Snumber {yyout, fprintf(yyout, "\t\tif(n>=%d && (n-1)<(%d+%d)) {\n\t", $1, $1, $2);}
+		| regex {char rts[1024];fprintf(yyout, "\t\tint tif=0;\n\t\t{\n\t\t\tchar regc[]=\"%s\";\n%s\t\tif(tif) {\n\t", rform($1, rts),  s_regec5);}
 		| number {fprintf(yyout, "\t\tif(n==%d) {\n\t", $1);}
 		;
 	
@@ -207,15 +208,16 @@ void yyerror (char *s) {
 
 
 char* RRregxp(char *reg1, char *reg2, int initial, int nloop, char *ts) {
-	//preprocess
-	
-	//process
+	char *rc1=strdup(reg1);
+	char *rc2=strdup(reg2);
+	rform(strdup(rc1), rc1);
+	rform(strdup(rc2), rc2);
 	
 	if(initial==0) {
-		sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\", regc2[]=\"%s\";\n%s", nloop, reg1, reg2, s_regec1);
+		sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\", regc2[]=\"%s\";\n%s", nloop, rc1, rc2, s_regec1);
 	}
 	else if(initial==1) {
-		sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\";\n%s", nloop, reg2, s_regec2);
+		sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\";\n%s", nloop, rc2, s_regec2);
 	}
 	else {
 		sprintf(ts, "\t\t\tflags[%d]++;\n", nloop);
@@ -227,11 +229,15 @@ char* RRregxp(char *reg1, char *reg2, int initial, int nloop, char *ts) {
 }
 
 char* RNregxp(char *reg, int nloop, char *ts) {
-	sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\";\n%s", nloop, reg, s_regec3);
+	char *rc=strdup(reg);
+	rform(strdup(rc), rc);
+	sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\";\n%s", nloop, rc, s_regec3);
 	return ts;
 }
 char* NRregxp(char *reg, int nloop, char *ts) {
-	sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\";\n%s", nloop, reg, s_regec4);
+	char *rc=strdup(reg);
+	rform(strdup(rc), rc);
+	sprintf(ts, "\t\t\tint lpn=%d;\n\t\t\tchar regc[]=\"%s\";\n%s", nloop, rc, s_regec4);
 	return ts;
 }
 
@@ -239,7 +245,8 @@ char* NRregxp(char *reg, int nloop, char *ts) {
 
 void addfun(int fu, char *fst) {
 	int sepl=-1,j =0, k=0, p=0;
-	char *mod;
+	char *mod1, *mod2, *ss1, *ss2;
+	// vars for ycmd only
 switch(fu) {
 	case EQCMD:
 	fprintf(yyout, "\t\t%s", s_eqcmd);
@@ -254,7 +261,6 @@ switch(fu) {
 	fprintf(yyout, "\t\tstrcpy(buffer, \"%s\"); strcat(buffer,\"\\n\");\n", fst);
 	break;
 	case DCMD:
-	//fprintf(yyout, "buffer[0]='\\0';\n");
 	fprintf(yyout, "\t\tn++; continue;\n");
 	break;
 	case CDCMD:
@@ -297,14 +303,9 @@ switch(fu) {
 	case QCMD:
 	fprintf(yyout, "\t\treturn 0;");
 	break;
-
-
-	//TODO
 	case SCMD:
-	fprintf(yyout, "\t\t");
-	break;
-	
-	
+	ssube(fst);
+	break;	
 	case TCMD:
 	fprintf(yyout, "\t\tif(subf==1) {subf=0; goto %s;}\n", fst);
 	break;
@@ -321,42 +322,82 @@ switch(fu) {
 	fprintf(yyout, "\t\tchar tmpbuff[BLEN];strcpy(tmpbuff, buffer);strcpy(buffer, holdsp); strcpy(holdsp, tmpbuff);\n");
 	break;
 	case YCMD:
-	mod=malloc(strlen(fst)+1);
 	for(int i=0; i<strlen(fst)-1; i++) {
-		if(fst[i]=='\\') {
-			if(fst[i+1]=='/') {
-				mod[p]=fst[i+1];
+		if(fst[i]=='\\')
+			i++;
+		else if(fst[i]=='/')
+			sepl=i;
+	}
+	printf("!sepl=%d!",sepl);
+	if(sepl==-1) {printf("Error, couldn't parse y command strings !\n");exit(1);}
+	
+	ss1=malloc(4*sizeof(fst));
+	ss2=malloc(4*sizeof(fst));
+	strncpy(ss1, fst, sepl);
+	ss1[sepl+1]='\0';
+	strcpy(ss2, fst+sepl+1);
+	printf("<SS1:%s||SS2:%s>\n", ss1, ss2);
+	mod1=malloc(4*sizeof(fst));
+	mod2=malloc(4*sizeof(fst));
+	
+	for(int i=0; i<strlen(ss1)-1; i++) {
+		if(ss1[i]=='\\') {
+			if(ss1[i+1]=='/') {
+				mod1[p]=ss1[i+1];
 			}
 			else {
-				mod[p]=fst[i];
-				mod[p+1]=fst[i+1];
+				mod1[p]=ss1[i];
+				mod1[p+1]=ss1[i+1];
 				p++;
 			}
 			i++;	
 		}
 		else
-			mod[p]=fst[i];
+			mod1[p]=ss1[i];
 		p++;
 	}
-	mod[p]=fst[strlen(fst)-1];
-	strcpy(fst, mod);
-	for(int i=0; i<strlen(fst)-1; i++) {
-		if(fst[i]=='\\') {
+	mod1[p]=ss1[strlen(ss1)-1];
+	mod1[p+1]='\0';
+	
+	p=0;
+	for(int i=0; i<strlen(ss2)-1; i++) {
+		if(ss2[i]=='\\') {
+			if(ss2[i+1]=='/') {
+				mod2[p]=ss2[i+1];
+			}
+			else {
+				mod2[p]=ss2[i];
+				mod2[p+1]=ss2[i+1];
+				p++;
+			}
+			i++;	
+		}
+		else
+			mod2[p]=ss2[i];
+		p++;
+	}
+	mod2[p]=ss2[strlen(ss2)-1];
+	mod2[p+1]='\0';
+
+
+
+
+
+	for(int i=0; i<strlen(ss1); i++) {
+		if(ss1[i]=='\\') {
+			i++;
+			j++;
+		}
+	}
+	for(int i=0; i<strlen(ss2); i++) {
+		if(ss2[i]=='\\') {
 			i++;
 			k++;
 		}
-		else if(fst[i]=='/') {
-			if(sepl==-1) {
-				sepl=i;
-				j=k;
-				k=0;
-			}
-		}
 	}
-	if(sepl==-1) {printf("Error, couldn't parse y command strings !\n");exit(1);}
-	if(sepl-j!=strlen(fst)-sepl-k-1) {printf("Error, string lengths do not match!\n");exit(1);}
-	fprintf(yyout, "\t\tchar str1[]=\"%*.*s\", str2[]=\"%s\"; for(int i=0; i<strlen(buffer); i++) {for(int j=0;j<%d;j++) {if(buffer[i]==str1[j]){buffer[i]=str2[j];}}}", sepl, sepl, fst, fst+sepl+1, sepl-j);
-		
+	printf("<mod1:%s||mod2:%s><j:%d k:%d>\n", mod1, mod2, j, k);
+	if(strlen(ss1)-j!=strlen(ss2)-k) {printf("Error, string lengths do not match!\n");exit(1);}
+	fprintf(yyout, "\t\tchar str1[]=\"%s\", str2[]=\"%s\"; for(int i=0; i<strlen(buffer); i++) {for(int j=0;j<%d;j++) {if(buffer[i]==str1[j]){buffer[i]=str2[j];}}}", mod1, mod2, (int)strlen(mod1)-j);	
 	break;
 	case ZPCMD:
 	fprintf(yyout, "\t\tbuffer[0]='\\0';");
@@ -364,4 +405,83 @@ switch(fu) {
 	
 	
 	}
+}
+
+
+char* rform(char *reg, char *ts) {
+	int p=0;
+	for(int i=0; i<strlen(reg); i++) {
+		if(reg[i]=='\\') {
+			ts[p]=reg[i];
+			ts[p+1]=reg[i];
+			p++;
+		}
+		else {
+			ts[p]=reg[i];
+		}
+		p++;
+	}
+	ts[p]='\0';
+
+	strcpy(reg, ts);
+
+	p=0;
+	for(int i=0; i<strlen(reg); i++) {
+		if(reg[i]=='\\') {
+			ts[p]=reg[i];
+			ts[p+1]=reg[i+1];
+			ts[p+2]=reg[i+2];
+			p+=2;
+			i+=2;
+		}
+		else if(reg[i]=='$') {
+			ts[p]='\\';
+			ts[p+1]='n';
+			p++;
+		}
+		else {
+			ts[p]=reg[i];
+		}
+		p++;
+	}
+	return ts;
+}
+
+void ssube(char *strp) {
+	char *mod;
+	int p=0, j=0, k=0, l=0, sepl=-1;
+	mod=malloc(strlen(strp)+1);
+	for(int i=0; i<strlen(strp)-1; i++) {
+		if(strp[i]=='\\') {
+			if(strp[i+1]=='/') {
+				mod[p]=strp[i+1];
+			}
+			else {
+				mod[p]=strp[i];
+				mod[p+1]=strp[i+1];
+				p++;
+			}
+			i++;	
+		}
+		else
+			mod[p]=strp[i];
+		p++;
+	}
+	mod[p]=strp[strlen(strp)-1];
+	mod[p+1]='\0';
+	
+	for(int i=0; i<strlen(mod)-1; i++) {
+		if(mod[i]=='\\') {
+			i++;
+			k++;
+		}
+		else if(mod[i]=='/') {
+			if(sepl==-1) {
+				sepl=i;
+				j=k;
+				k=0;
+			}
+		}
+	}
+
 }

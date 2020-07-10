@@ -3,7 +3,7 @@
 const char *s_header = "#include<stdio.h>\n#include<stdlib.h>\n#include<string.h>\n#include<regex.h>\n";
 const char *s_macros = "/*                      */\n#define BLEN 1024\n#ifndef FLL\n#define FLL 256\n#endif\n\n";
 const char *s_mainS = "int main(int argc, char *argv[]) {\n\tFILE *fin = fopen(argv[1], \"r\");\n\tchar buffer[BLEN], holdsp[BLEN];\n\tint n=1, read=1, flags[FLL], subf=0;\n\tmemset(flags, 0, 1024);\n\tholdsp[0]='\\0';\n";
-const char *s_mainE = "\t\tprintf(\"%s\", buffer);\n\t\tn++;\n\t}\n\treturn 0;\n}\n";
+const char *s_mainE = "\t\tif(argc!=3||argv[2][1]!='n')\n\t\t\tprintf(\"%s\", buffer);\n\t\tn++;\n\t}\n\treturn 0;\n}\n";
 const char *s_mloop = "\n\twhile(read==0||fgets(buffer, BLEN, fin)) {\n\t\tread=1;\n";
 
 /* function strings */
