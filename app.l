@@ -30,13 +30,13 @@ int yylex();
 "p"	{return PCMD;}	/* p -- print pattern space to output		*/
 "P"	{return CPCMD;}	/* P -- print first line of pattern space	*/
 "q"	{return QCMD;}	/* q -- exit the stream editor			*/
-"s"	{return SCMD;}	/* s -- regular-expression substitute		*/
-"t"	{return TCMD;}	/* t -- branch on last substitute successful	*/
-"T"	{return CTCMD;}	/* T -- branch on last substitute failed	*/
+"s/"(\\.|[^/])*"/"(\\.|[^/])*"/"[a-zA-Z0-9]?	{char *scr= strdup(yytext+2); yylval.regs=scr; return SCMD;}	/* s -- regular-expression substitute		*/
+"t"([a-zA-Z])+	{char *s_tc1= strdup(yytext+1); yylval.tl=s_tc1; return TCMD;}	/* t -- branch on last substitute successful	*/
+"T"([a-zA-Z])+	{char *s_tc2= strdup(yytext+1); yylval.ctl=s_tc2; return CTCMD;}	/* T -- branch on last substitute failed	*/
 "w"	{return WCMD;}	/* w -- write pattern space to file		*/
 "W"	{return CWCMD;}	/* W -- write first line of pattern space	*/
 "x"	{return XCMD;}	/* x -- exhange pattern and hold spaces		*/
-"y"	{return YCMD;}	/* y -- transliterate text			*/
+"y/"(\\.|[^/])*"/"(\\.|[^/])*"/"	{char *yc= strdup(yytext+2); yc[strlen(yc)-1]='\0'; yylval.yc=yc; return YCMD;}	/* y -- transliterate text			*/
 "z"	{return ZPCMD;} /* z -- clear pattern space			*/
 
 "!"	{return NEG;}
@@ -53,8 +53,8 @@ int yylex();
 
 "{"	{return CROP;}
 "}"	{return CRED;}
-";"	;//{return SSEP;} //not portable
-\n	;//{return NL;}
+";"	;
+\n	;
 "#".*\n	;
 [ \t]	;
 .                      {ECHO; yyerror("unexpected character");}

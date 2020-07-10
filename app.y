@@ -10,7 +10,7 @@ int yylex();
 
 extern FILE *yyin;
 extern FILE *yyout;
-int nloop;
+int nloop, spc;
 
 extern const char *s_header;
 extern const char *s_macros;
@@ -43,6 +43,10 @@ void addfun(int fu, char *fst);
 	char *reg;
 	char *str;
 	char *nlbl;
+	char *regs;
+	char *tl;
+	char *ctl;
+	char *yc;
 	}
 	
 %start file
@@ -51,6 +55,10 @@ void addfun(int fu, char *fst);
 %token <nlbl> BCMD
 %token <str> CCMD
 %token <str> ICMD
+%token <regs> SCMD
+%token <tl> TCMD
+%token <ctl> CTCMD
+%token <yc> YCMD
 %token <num> number
 %token <mnum> Mnumber
 %token <snum> Snumber
@@ -71,24 +79,16 @@ void addfun(int fu, char *fst);
 %token PCMD
 %token CPCMD
 %token QCMD
-%token SCMD
-%token TCMD
-%token CTCMD
 %token WCMD
 %token CWCMD
 %token XCMD
-%token YCMD
 %token ZPCMD
 %token NEG
 %token RSEP
 %token EFL
 
-%token FGCMD //VERIFY
-
-%token CROP //TO ADD
+%token CROP
 %token CRED
-%token SSEP //NOT portable - VERIFY
-%token NL // VERIFY
 %error-verbose //DEBUG ONLY
 %%
 
@@ -101,12 +101,12 @@ lines	: lines line {}
 	;
 
 line    : selector CROP file CRED {fprintf(yyout, "\t\t}\n");}
-	| CROP file CRED
+	| CROP file CRED {}
 	| selector command {fprintf(yyout, "\t\t}\n");}
 
 	| command {fprintf(yyout, "\n");}
 	
-	| label {fprintf(yyout, "\n:%s\n", $1);} //TODO
+	| label {fprintf(yyout, "\n\t\t%s:\n", $1);} //TODO
 	
         ;
 selector: regex RSEP regex NEG {char ts[1024], ts1[1024], ts2[1024];fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\telse if(flags[%d]==1){\n%s\t\t}\n\t\telse if(flags[%d]==2) {\n%s\t\t}\n\n\t\tif(!(flags[%d]==1 || flags[%d]==2)) {\n\t", nloop, RRregxp($1, $3, 0, nloop, ts), nloop,RRregxp($1, $3, 1, nloop, ts1), nloop, RRregxp($1, $3, 2, nloop, ts2), nloop, nloop);nloop++;}
@@ -154,20 +154,17 @@ command	: EQCMD {addfun(EQCMD, NULL);}
 	| PCMD {addfun(PCMD, NULL);}
 	| CPCMD {addfun(CPCMD, NULL);}
 	| QCMD {addfun(QCMD, NULL);}
-	| SCMD flags {} //TODO
-	| TCMD {addfun(TCMD, NULL);}
-	| CTCMD {addfun(CTCMD, NULL);}
+	| SCMD {addfun(SCMD, $1);} //TODO
+	| TCMD {addfun(TCMD, $1);}
+	| CTCMD {addfun(CTCMD, $1);}
 	| WCMD {addfun(WCMD, NULL);}
 	| CWCMD {addfun(CWCMD, NULL);}
 	| XCMD {addfun(XCMD, NULL);}
-	| YCMD {addfun(YCMD, NULL);}//TODO
+	| YCMD {addfun(YCMD, $1);}//TODO
 	| ZPCMD {addfun(ZPCMD, NULL);}
 	
 	;
 	
-
-flags	: FGCMD {}
-	;
 
 %%
 
@@ -178,7 +175,7 @@ int main(int argc, char *argv[]) {
 		yyerror("You need 2 args: inputFileName outputFileName\n");
 	else {
 		int tmi=-1;
-		nloop=0;
+		nloop=0, spc=0;
 
 	//preprocess
 	
@@ -240,8 +237,9 @@ char* NRregxp(char *reg, int nloop, char *ts) {
 
 
 
-//TODO: add functiions for each command
 void addfun(int fu, char *fst) {
+	int sepl=-1,j =0, k=0, p=0;
+	char *mod;
 switch(fu) {
 	case EQCMD:
 	fprintf(yyout, "\t\t%s", s_eqcmd);
@@ -280,7 +278,8 @@ switch(fu) {
 	case ICMD:
 	fprintf(yyout, "\t\tprintf(\"%s\\n\");\n", fst);
 	break;
-	case LCMD://TODO: add formatting
+	case LCMD:
+	fprintf(yyout, "\t\tfor(int i=0;i<strlen(buffer);i++){if(buffer[i]=='\\a')printf(\"\\\\a\");else if(buffer[i]=='\\b')printf(\"\\\\b\");else if(buffer[i]=='\\e')printf(\"\\\\e\");else if(buffer[i]=='\\f')printf(\"\\\\f\");else if(buffer[i]=='\\n')printf(\"$\\n\");else if(buffer[i]=='\\r')printf(\"\\\\r\");else if(buffer[i]=='\\t')printf(\"\\\\t\");else if(buffer[i]=='\\v')printf(\"\\\\v\");else if(buffer[i]>=' '&&buffer[i]<='~')printf(\"%%c\", buffer[i]);else printf(\"\\\\x%%.2x\", buffer[i]);}");
 	fprintf(yyout, "\t\t%s", s_lcmd);
 	break;
 	case NCMD:
@@ -293,36 +292,72 @@ switch(fu) {
 	fprintf(yyout, "\t\tprintf(\"%%s\", buffer);\n");
 	break;
 	case CPCMD:
-	fprintf(yyout, "\t\tprintf(\"%%*s\", strcspn(buffer, \"\\n\")+1, buffer);");
+	fprintf(yyout, "\t\tprintf(\"%%*.*s\", strcspn(buffer, \"\\n\")+1, strcspn(buffer, \"\\n\")+1, buffer);");
 	break;
 	case QCMD:
 	fprintf(yyout, "\t\treturn 0;");
 	break;
-	
+
+
 	//TODO
-	case TCMD:
+	case SCMD:
 	fprintf(yyout, "\t\t");
+	break;
+	
+	
+	case TCMD:
+	fprintf(yyout, "\t\tif(subf==1) {subf=0; goto %s;}\n", fst);
 	break;
 	case CTCMD:
-	fprintf(yyout, "\t\t");
+	fprintf(yyout, "\t\tif(subf==0) {goto %s;}\n", fst);
 	break;
-	
-	//TODO
 	case WCMD:
-	fprintf(yyout, "\t\t");
+	fprintf(yyout, "\t\tFILE *ftpw=fopen(\"%s\", \"a+\"); fprintf(ftpw, \"%%s\", buffer); fclose(ftpw);\n", fst);
 	break;
 	case CWCMD:
-	fprintf(yyout, "\t\t");
+	fprintf(yyout, "\t\tFILE *ftpw=fopen(\"%s\", \"a+\"); fprintf(ftpw, \"%%*.*s\", strcspn(buffer, \"\\n\")+1, buffer); fclose(ftpw);\n", fst);
 	break;
-	
 	case XCMD:
 	fprintf(yyout, "\t\tchar tmpbuff[BLEN];strcpy(tmpbuff, buffer);strcpy(buffer, holdsp); strcpy(holdsp, tmpbuff);\n");
 	break;
-	
-	case YCMD://TODO
-	fprintf(yyout, "\t\t");
+	case YCMD:
+	mod=malloc(strlen(fst)+1);
+	for(int i=0; i<strlen(fst)-1; i++) {
+		if(fst[i]=='\\') {
+			if(fst[i+1]=='/') {
+				mod[p]=fst[i+1];
+			}
+			else {
+				mod[p]=fst[i];
+				mod[p+1]=fst[i+1];
+				p++;
+			}
+			i++;	
+		}
+		else
+			mod[p]=fst[i];
+		p++;
+	}
+	mod[p]=fst[strlen(fst)-1];
+	strcpy(fst, mod);
+	for(int i=0; i<strlen(fst)-1; i++) {
+		if(fst[i]=='\\') {
+			i++;
+			k++;
+		}
+		else if(fst[i]=='/') {
+			if(sepl==-1) {
+				sepl=i;
+				j=k;
+				k=0;
+			}
+		}
+	}
+	if(sepl==-1) {printf("Error, couldn't parse y command strings !\n");exit(1);}
+	if(sepl-j!=strlen(fst)-sepl-k-1) {printf("Error, string lengths do not match!\n");exit(1);}
+	fprintf(yyout, "\t\tchar str1[]=\"%*.*s\", str2[]=\"%s\"; for(int i=0; i<strlen(buffer); i++) {for(int j=0;j<%d;j++) {if(buffer[i]==str1[j]){buffer[i]=str2[j];}}}", sepl, sepl, fst, fst+sepl+1, sepl-j);
+		
 	break;
-	
 	case ZPCMD:
 	fprintf(yyout, "\t\tbuffer[0]='\\0';");
 	break;
