@@ -2,7 +2,7 @@
 
 diff="diff -iad"
 
-declare -a file_base=("address2" "address" "d-all" "d-inverted" "d" "p-all" "range2" "range3" "range4" "range5" "range6" "range7" "range" "y")
+declare -a file_base=("dict1" "address2" "address" "d-all" "d-inverted" "d" "p-all" "range2" "range3" "range4" "range5" "range6" "range7" "range" "y")
 
 # Loop to test all files in array
 for file in "${file_base[@]}"; do
