@@ -20,14 +20,14 @@ test.sh can be used to test all sed scripts in /tests/<br>
 file.sed : sed file to be tested<br>
 file.in : input file for sed<br>
 file.out : expected output(output of sed)<br>
-Testsing(sample):<br>
+Testing(sample):<br>
 
     $./test.sh
     $Testing against tests/dict1.in
     $TEST OK!
     $Enter a to abort, anything else to continue:
 
-test.sh converts file.sed to C, compiles it, compiles it and executes it with file.in as input. Output is compared with expected output(sed output) using diff command.<br>
+test.sh converts file.sed to C, compiles it and executes it with file.in as input. Output is compared with expected file.out(sed output) using diff command.<br>
 Test result will be printed for each sed file.<br>
 (test-files will be removed automatically after tests)<br>
 
