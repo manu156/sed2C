@@ -26,6 +26,7 @@ extern const char *s_regec2;
 extern const char *s_regec3;
 extern const char *s_regec4;
 extern const char *s_regec5;
+extern const char *s_ss;
 
 char* RRregxp(char *reg1, char *reg2, int initial, int nloop, char *ts);
 char* RNregxp(char *reg, int nloop, char *ts);
@@ -328,7 +329,7 @@ switch(fu) {
 		else if(fst[i]=='/')
 			sepl=i;
 	}
-	printf("!sepl=%d!",sepl);
+	//printf("!sepl=%d!",sepl);
 	if(sepl==-1) {printf("Error, couldn't parse y command strings !\n");exit(1);}
 	
 	ss1=malloc(4*sizeof(fst));
@@ -336,7 +337,9 @@ switch(fu) {
 	strncpy(ss1, fst, sepl);
 	ss1[sepl+1]='\0';
 	strcpy(ss2, fst+sepl+1);
-	printf("<SS1:%s||SS2:%s>\n", ss1, ss2);
+	
+	//printf("<SS1:%s||SS2:%s>\n", ss1, ss2);
+	
 	mod1=malloc(4*sizeof(fst));
 	mod2=malloc(4*sizeof(fst));
 	
@@ -383,20 +386,20 @@ switch(fu) {
 
 
 
-	for(int i=0; i<strlen(ss1); i++) {
-		if(ss1[i]=='\\') {
+	for(int i=0; i<strlen(mod1); i++) {
+		if(mod1[i]=='\\') {
 			i++;
 			j++;
 		}
 	}
-	for(int i=0; i<strlen(ss2); i++) {
-		if(ss2[i]=='\\') {
+	for(int i=0; i<strlen(mod2); i++) {
+		if(mod2[i]=='\\') {
 			i++;
 			k++;
 		}
 	}
-	printf("<mod1:%s||mod2:%s><j:%d k:%d>\n", mod1, mod2, j, k);
-	if(strlen(ss1)-j!=strlen(ss2)-k) {printf("Error, string lengths do not match!\n");exit(1);}
+	//printf("<mod1:%s||mod2:%s><j:%d k:%d>\n", mod1, mod2, j, k);
+	if(strlen(mod1)-j!=strlen(mod2)-k) {printf("Error, string lengths do not match!\n");exit(1);}
 	fprintf(yyout, "\t\tchar str1[]=\"%s\", str2[]=\"%s\"; for(int i=0; i<strlen(buffer); i++) {for(int j=0;j<%d;j++) {if(buffer[i]==str1[j]){buffer[i]=str2[j];}}}", mod1, mod2, (int)strlen(mod1)-j);	
 	break;
 	case ZPCMD:
@@ -448,40 +451,208 @@ char* rform(char *reg, char *ts) {
 }
 
 void ssube(char *strp) {
-	char *mod;
-	int p=0, j=0, k=0, l=0, sepl=-1;
-	mod=malloc(strlen(strp)+1);
+	int sep1=-1, sep2=-1, p=0, j=0, k=0;
+	char *ss1, *ss2, *mod1, *mod2;
 	for(int i=0; i<strlen(strp)-1; i++) {
-		if(strp[i]=='\\') {
-			if(strp[i+1]=='/') {
-				mod[p]=strp[i+1];
+		if(strp[i]=='\\')
+			i++;
+		else if(strp[i]=='/')
+			sep1=i;
+	}
+	for(int i=sep1; i<strlen(strp); i++) {
+		if(strp[i]=='\\')
+			i++;
+		else if(strp[i]=='/')
+			sep2=i;
+	}
+	//printf("!sep %d %d!",sep1, sep2);
+	if(sep1==-1||sep2==-1) {printf("Error, couldn't parse s command strings !\n");exit(1);}
+	
+	ss1=malloc(4*sizeof(strp));
+	ss2=malloc(4*sizeof(strp));
+	strncpy(ss1, strp, sep1);
+	ss1[sep1+1]='\0';
+	strncpy(ss2, strp+sep1+1, sep2-sep1-1);
+	ss2[sep2-sep1]='\0';
+	//printf("<SS1:%s||SS2:%s>\n", ss1, ss2);
+	mod1=malloc(4*sizeof(strp));
+	mod2=malloc(4*sizeof(strp));
+	
+	for(int i=0; i<strlen(ss1)-1; i++) {
+		if(ss1[i]=='\\') {
+			if(ss1[i+1]=='/') {
+				mod1[p]=ss1[i+1];
 			}
 			else {
-				mod[p]=strp[i];
-				mod[p+1]=strp[i+1];
+				mod1[p]=ss1[i];
+				mod1[p+1]=ss1[i+1];
 				p++;
 			}
 			i++;	
 		}
 		else
-			mod[p]=strp[i];
+			mod1[p]=ss1[i];
 		p++;
 	}
-	mod[p]=strp[strlen(strp)-1];
-	mod[p+1]='\0';
+	mod1[p]=ss1[strlen(ss1)-1];
+	mod1[p+1]='\0';
 	
-	for(int i=0; i<strlen(mod)-1; i++) {
-		if(mod[i]=='\\') {
-			i++;
-			k++;
+	
+	p=0;
+	for(int i=0; i<strlen(ss2)-1; i++) {
+		if(ss2[i]=='\\') {
+			if(ss2[i+1]=='/') {
+				mod2[p]=ss2[i+1];
+			}
+			else {
+				mod2[p]=ss2[i];
+				mod2[p+1]=ss2[i+1];
+				p++;
+			}
+			i++;	
 		}
-		else if(mod[i]=='/') {
-			if(sepl==-1) {
-				sepl=i;
-				j=k;
-				k=0;
+		else
+			mod2[p]=ss2[i];
+		p++;
+	}
+	mod2[p]=ss2[strlen(ss2)-1];
+	mod2[p+1]='\0';
+	
+	if(sep2!=strlen(strp)) {
+		fprintf(yyout, "{");
+		if(strstr(strp+sep2, "g")) {
+			fprintf(yyout, "int limit=strlen(buffer);");
+		}
+		else {
+			fprintf(yyout, "int limit=1;");
+		}
+		if(strstr(strp+sep2, "p")) {
+			fprintf(yyout, "int pr=1;");
+		}
+		else {
+			fprintf(yyout, "int pr=0;");
+		}
+		if(strstr(strp+sep2, "i")||strstr(strp+sep2, "I")) {
+			fprintf(yyout, "int cs=1;");
+		}
+		else {
+			fprintf(yyout, "int cs=0;");
+		}
+		int tsm=-1;
+		for(int i=sep2;i<strlen(strp);i++) {
+			if(strp[i]>'0'&&strp[i]<='9') {
+				sscanf(strp+i, "%d", &tsm);
+				break;
 			}
 		}
+		if(tsm!=-1) {
+			fprintf(yyout, "int nth=%d;", tsm);
+		}
+		else {
+			fprintf(yyout, "int nth=0;");
+		}
 	}
+	else {
+		fprintf(yyout, "{int limit=1, pr=0, ci=0,nth=0;\n");
+	}
+	
+
+	rform(strdup(mod1), mod1);
+	rform(strdup(mod2), mod2);
+	//printf("<mod1:%s||mod2:%s>\n", mod1, mod2);
+	
+	fprintf(yyout, "char r1[]=\"%s\";char r2[]=\"%s\";\n",mod1,mod2);
+	fprintf(yyout, "%s", s_ss);
+	
+	/*
+	
+	//flags of s:
+	//g - apply replacement to all matches: limit=strlen(buffer);
+	//p - if substitution is made print the pattern space :pr=1
+	//i/I - case insensitive :cs=1
+	//n - replace only nth match :nth=number and limit =n
+	
+	int p=0;
+	char *buffc=malloc(sizeof(buffer));
+	memset(buffc, '\0', sizeof(buffc)/sizeof(char));
+	int ms=0;
+	regex_t regex;
+	size_t nmatch=9;
+	regmatch_t pm[nmatch];
+	int reti;
+	if(cs==1) {
+		reti = regcomp(&regex, r1, REG_ICASE);
+	}
+	else {
+		reti = regcomp(&regex, r1, 0);
+	}
+	if(reti) {
+		fprintf(stderr, "Could not compile regex\n");
+		exit(1);
+	}
+	
+	reti = regexec(&regex, buffer, nmatch, pm, 0);
+	int r=0, ni=0;
+	while(!reti&&ni<limit) {
+		r=1;
+		subf=1;
+		for(int i=0; i<nmatch; i++) {
+			if(pm[i].rm_so==-1) {
+				ms=i-1;
+				break;
+			}
+		}
+		p=0;
+		for(int i=0; i<strlen(r2); i++) {
+			if(r2[i]=='\\'&&(r2[i+1]>'9'||r2[i+1]<'1')) {
+				buffc[p]=r2[i];
+				buffc[p+1]=r2[i+1];
+				p+=2;
+				i++;
+			}
+			else if(r2[i]=='\\'&&r2[i+1]<='9'&&r2[i+1]>'0') {
+				int q=r2[i+1]-'0';
+				sprintf(&buffc[p],"%*.*s", pm[q].rm_eo-pm[q].rm_so, pm[q].rm_eo-pm[q].rm_so, &buffer[pm[q].rm_so]);
+				p+= pm[q].rm_eo-pm[q].rm_so;
+				i++;
+			
+			}
+			else if(r2[i]=='&') {
+				int q=0;
+				sprintf(&buffc[p],"%*.*s", pm[q].rm_eo-pm[q].rm_so, pm[q].rm_eo-pm[q].rm_so, &buffer[pm[q].rm_so]);
+				p+= pm[q].rm_eo-pm[q].rm_so;
+			
+			}
+			else {
+				buffc[p]=r2[i];
+				p++;
+			}
+				
+		}
+		buffc[p]='\0';
+		char *bufd=strdup(buffer);
+		if(nth==0||nth==(ni+1)) {
+			sprintf(buffer,"%*.*s%s%s", pm[0].rm_so, pm[0].rm_so, bufd, buffc, &bufd[pm[0].rm_eo]);
+		}
+		ni++;
+	reti = regexec(&regex, buffer+pm[0].rm_eo, nmatch, pm, REG_NOTBOL);
+	}
+	if(r==1&&pr==1) {
+		printf("%s\n", buffer);
+	}
+	if (reti == REG_NOMATCH) {if(r==0){subf=0;}}
+	else {
+		regerror(reti, &regex, buffer, sizeof(buffer));
+		fprintf(stderr, "Regex match failed: %s\n", buffer);
+		exit(1);
+	}
+	regfree(&regex);
+	
+	
+	}
+	*/
+	
+	
+	
 
 }
