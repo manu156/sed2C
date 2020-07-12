@@ -5,7 +5,7 @@ int yylex();
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <regex.h> // VERIFY usage
+#include <regex.h>
 #include "strs.h"
 
 extern FILE *yyin;
@@ -108,7 +108,7 @@ line    : selector CROP file CRED {fprintf(yyout, "\t\t}\n");}
 
 	| command {fprintf(yyout, "\n");}
 	
-	| label {fprintf(yyout, "\n\t\t%s:\n", $1);} //TODO
+	| label {fprintf(yyout, "\n\t\t%s:\n", $1);}
 	
         ;
 selector: regex RSEP regex NEG {char ts[1024], ts1[1024], ts2[1024];fprintf(yyout, "\t\tif(flags[%d]==0) {\n%s\t\t}\n\t\telse if(flags[%d]==1){\n%s\t\t}\n\t\telse if(flags[%d]==2) {\n%s\t\t}\n\n\t\tif(!(flags[%d]==1 || flags[%d]==2)) {\n\t", nloop, RRregxp($1, $3, 0, nloop, ts), nloop,RRregxp($1, $3, 1, nloop, ts1), nloop, RRregxp($1, $3, 2, nloop, ts2), nloop, nloop);nloop++;}
@@ -137,7 +137,7 @@ selector: regex RSEP regex NEG {char ts[1024], ts1[1024], ts2[1024];fprintf(yyou
 		;
 	
 
-	//TODO add all comands
+
 command	: EQCMD {addfun(EQCMD, NULL);}
 	| ACMD {addfun(ACMD, $1);}
 	| BCMD {addfun(BCMD, $1);}
@@ -156,13 +156,13 @@ command	: EQCMD {addfun(EQCMD, NULL);}
 	| PCMD {addfun(PCMD, NULL);}
 	| CPCMD {addfun(CPCMD, NULL);}
 	| QCMD {addfun(QCMD, NULL);}
-	| SCMD {addfun(SCMD, $1);} //TODO
+	| SCMD {addfun(SCMD, $1);}
 	| TCMD {addfun(TCMD, $1);}
 	| CTCMD {addfun(CTCMD, $1);}
 	| WCMD {addfun(WCMD, NULL);}
 	| CWCMD {addfun(CWCMD, NULL);}
 	| XCMD {addfun(XCMD, NULL);}
-	| YCMD {addfun(YCMD, $1);}//TODO
+	| YCMD {addfun(YCMD, $1);}
 	| ZPCMD {addfun(ZPCMD, NULL);}
 	
 	;
@@ -329,7 +329,7 @@ switch(fu) {
 		else if(fst[i]=='/')
 			sepl=i;
 	}
-	//printf("!sepl=%d!",sepl);
+	
 	if(sepl==-1) {printf("Error, couldn't parse y command strings !\n");exit(1);}
 	
 	ss1=malloc(4*sizeof(fst));
@@ -338,7 +338,7 @@ switch(fu) {
 	ss1[sepl+1]='\0';
 	strcpy(ss2, fst+sepl+1);
 	
-	//printf("<SS1:%s||SS2:%s>\n", ss1, ss2);
+
 	
 	mod1=malloc(4*sizeof(fst));
 	mod2=malloc(4*sizeof(fst));
@@ -398,7 +398,7 @@ switch(fu) {
 			k++;
 		}
 	}
-	//printf("<mod1:%s||mod2:%s><j:%d k:%d>\n", mod1, mod2, j, k);
+
 	if(strlen(mod1)-j!=strlen(mod2)-k) {printf("Error, string lengths do not match!\n");exit(1);}
 	fprintf(yyout, "\t\tchar str1[]=\"%s\", str2[]=\"%s\"; for(int i=0; i<strlen(buffer); i++) {for(int j=0;j<%d;j++) {if(buffer[i]==str1[j]){buffer[i]=str2[j];}}}", mod1, mod2, (int)strlen(mod1)-j);	
 	break;
@@ -465,7 +465,7 @@ void ssube(char *strp) {
 		else if(strp[i]=='/')
 			sep2=i;
 	}
-	//printf("!sep %d %d!",sep1, sep2);
+
 	if(sep1==-1||sep2==-1) {printf("Error, couldn't parse s command strings !\n");exit(1);}
 	
 	ss1=malloc(4*sizeof(strp));
@@ -474,7 +474,6 @@ void ssube(char *strp) {
 	ss1[sep1+1]='\0';
 	strncpy(ss2, strp+sep1+1, sep2-sep1-1);
 	ss2[sep2-sep1]='\0';
-	//printf("<SS1:%s||SS2:%s>\n", ss1, ss2);
 	mod1=malloc(4*sizeof(strp));
 	mod2=malloc(4*sizeof(strp));
 	
@@ -559,7 +558,7 @@ void ssube(char *strp) {
 
 	rform(strdup(mod1), mod1);
 	rform(strdup(mod2), mod2);
-	//printf("<mod1:%s||mod2:%s>\n", mod1, mod2);
+
 	
 	fprintf(yyout, "char r1[]=\"%s\";char r2[]=\"%s\";\n",mod1,mod2);
 	fprintf(yyout, "%s", s_ss);
@@ -571,6 +570,9 @@ void ssube(char *strp) {
 	//p - if substitution is made print the pattern space :pr=1
 	//i/I - case insensitive :cs=1
 	//n - replace only nth match :nth=number and limit =n
+
+	//Output produced by s_ss:
+	
 	
 	int p=0;
 	char *buffc=malloc(sizeof(buffer));
