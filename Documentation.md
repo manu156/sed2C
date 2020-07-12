@@ -61,10 +61,11 @@ We also added grammar rules (whenever possible, without ambiguity) to correct sy
 | c | change current line |
 | d | delete all of pattern space |
 | D | delete first line of pattern space |
+| F | print the filename(current input filename) with trailing newline character |
 | g | copy hold space to pattern space |
 | G | append hold space to pattern space |
 | h | copy pattern space to hold space |
-| H | append hold space to pattern space |
+| H | append pattern space to hold space |
 | i | insert text before current line |
 | l | print pattern space in escaped form |
 | n | get next line into pattern space |
@@ -77,5 +78,6 @@ We also added grammar rules (whenever possible, without ambiguity) to correct sy
 | T | branch on last substitute failed |
 | w | write pattern space to file |
 | W | write first line of pattern space |
-| y | exhange pattern and hold spaces	|
-| z | transliterate text |
+| x | exhange pattern and hold spaces |
+| y | transliterate text |
+| z | clear pattern space |
