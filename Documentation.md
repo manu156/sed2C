@@ -83,6 +83,6 @@ We also added grammar rules (whenever possible, without ambiguity) to correct sy
 | z | clear pattern space |
 
 
-## Conversion to C
-
-
+## Conversion to C and Structure of C
+Sed
+\[Selectors\] are 
