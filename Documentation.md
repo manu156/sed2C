@@ -81,3 +81,8 @@ We also added grammar rules (whenever possible, without ambiguity) to correct sy
 | x | exhange pattern and hold spaces |
 | y | transliterate text |
 | z | clear pattern space |
+
+
+## Conversion to C
+
+
