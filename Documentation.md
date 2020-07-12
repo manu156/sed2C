@@ -9,8 +9,48 @@ GNU Sed, BSD Sed, MiniSed, Super Sed, all have different syntax, different exten
 GNU Sed is considered as base for this implementation. Features that are obsolete or non-portable are not implemented.<br><br>
 
 ## Structure of Sed-script
+each sed-script line is of this format:<br>
+> \[selector\]\[NEG\]\[command\]\[flags\]<br>
 
-[Selector][Command][flags]
+\[selector\] - Specifies address(es) of lines on which command should be executed<br>
+\[command\] - one of any command<br>
+\[flags\] - flags for command<br>
+
+## Grammmar
+Sed-script fits into the following grammar:<br>
+\[file\] &rarr; \[lines\]<br>
+where each line has a command with optional parameters except commands a, c, and i(these commands can span multiple lines)<br>
+lines can be seperated by a newline or semicolon.<br>
+\[lines\] &rarr; \[lines\] SEP \[line\] \| \[line\]<br>
+\[line\] &rarr; \[selector\]\[NEG\]\[command\]\[flags\] \| \[label\]<br>
+selector, NEG(!), flags are optional.<br>
+Several commands can be combined using "\{" and "\}", with ";" seperating each line(commands)<br>
+lines/commands can also be grouped using "\{" and "\}", with ";" seperating each line(commands)<br>
+Also sed accepts "\{\}", ""(empty file), which creates ambiguous grammar.<br>
+For example:<br>
+Following sed commands are accepted by sed:<br>
+
+    $sed ''
+    $sed '{}'
+    $sed '{p}'
+    $sed '{{}}'
+    $sed '{{p}}'
+However, following commands are not accepted:<br>
+
+    $sed '{p{}}'
+    $sed '{{}p}'
+    $sed '{{p}p}'
+    $sed '{p{p}}'
+These conflicts are because of optional end of command ";" and optional selector<br>
+Also, several semicolons/newlines can be used to seperate commands/lines.<br>
+Following sed commands are accepted by sed:<br>
+
+    $sed ';'
+    $sed '{;;};;;'
+    $sed 'p;;;p'
+
+This implementation includes above abnormal positives and to cover all posible parse trees with no ambiguity.<br>
+We also added grammar rules (whenever possible, without ambiguity) to correct syntax error where two commands are not seperated by ; or newline but have atleast one space between them.<br>
 
 ## Commands Implemented
 | Command  |  Function |
@@ -21,10 +61,11 @@ GNU Sed is considered as base for this implementation. Features that are obsolet
 | c | change current line |
 | d | delete all of pattern space |
 | D | delete first line of pattern space |
+| F | print the filename(current input filename) with trailing newline character |
 | g | copy hold space to pattern space |
 | G | append hold space to pattern space |
 | h | copy pattern space to hold space |
-| H | append hold space to pattern space |
+| H | append pattern space to hold space |
 | i | insert text before current line |
 | l | print pattern space in escaped form |
 | n | get next line into pattern space |
@@ -37,5 +78,27 @@ GNU Sed is considered as base for this implementation. Features that are obsolet
 | T | branch on last substitute failed |
 | w | write pattern space to file |
 | W | write first line of pattern space |
-| y | exhange pattern and hold spaces	|
-| z | transliterate text |
+| x | exhange pattern and hold spaces |
+| y | transliterate text |
+| z | clear pattern space |
+
+
+## Conversion to C and Structure of C
+Sed scans each line of inputfile in buffer(patternspace) and maintains a secondary buffer(holdspace, can be used for several operations). Then commands are executed one by one on patternspace, after completion next line is loaded onto patternspace.<br> 
+produced C file is simiar to how sed works, conatins a while loop to simulate sed-cycles.<br>
+Several commands often correspond to large C-code with minor varitaions in C-code with Sed-parameters. Therefore all C-code strings that are long are included in "strs.h"(constant strings) in unescaped form.<br>
+\[Selectors\] are mostly conditions on line numbers or regular expressions.<br>
+\[commands\] are commands which mostly have same C-code.<br>
+\[NEG\] is "!" which negates selector
+\[flags\] are for additional control over command. s-command(substitution) supports flags.<br>
+
+| flag  |  Function |
+|----------|:------|
+| g | apply replacement to all matches |
+| p | if substitution is made print the pattern space |
+| i | case-insensitive |
+| I | case-insensitive |
+| _number_ | replace only _number_th match |
+
+basic indentation is made for most commands in produced C file. Error checking is minimal and user supplied sed file is assumed to be correct.
+
