@@ -9,8 +9,13 @@ GNU Sed, BSD Sed, MiniSed, Super Sed, all have different syntax, different exten
 GNU Sed is considered as base for this implementation. Features that are obsolete or non-portable are not implemented.<br><br>
 
 ## Structure of Sed-script
+each sed-script line is of this format:<br>
+\[selector\]\[NEG\]\[command\]\[flags\]<br>
+\[selector\] - Specifies address(es) of lines on which command should be executed<br>
+\[command\] - one of any command<br>
+\[flags\] - flags for command<br>
 
-[Selector][Command][flags]
+## Grammmar
 
 ## Commands Implemented
 | Command  |  Function |
