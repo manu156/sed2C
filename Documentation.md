@@ -84,5 +84,21 @@ We also added grammar rules (whenever possible, without ambiguity) to correct sy
 
 
 ## Conversion to C and Structure of C
-Sed
-\[Selectors\] are 
+Sed scans each line of inputfile in buffer(patternspace) and maintains a secondary buffer(holdspace, can be used for several operations). Then commands are executed one by one on patternspace, after completion next line is loaded onto patternspace.<br> 
+produced C file is simiar to how sed works, conatins a while loop to simulate sed-cycles.<br>
+Several commands often correspond to large C-code with minor varitaions in C-code with Sed-parameters. Therefore all C-code strings that are long are included in "strs.h"(constant strings) in unescaped form.<br>
+\[Selectors\] are mostly conditions on line numbers or regular expressions.<br>
+\[commands\] are commands which mostly have same C-code.<br>
+\[NEG\] is "!" which negates selector
+\[flags\] are for additional control over command. s-command(substitution) supports flags.<br>
+
+| flag  |  Function |
+|----------|:------|
+| g | apply replacement to all matches |
+| p | if substitution is made print the pattern space |
+| i | case-insensitive |
+| I | case-insensitive |
+| _number_ | replace only _number_th match |
+
+
+
