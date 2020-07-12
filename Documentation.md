@@ -100,5 +100,5 @@ Several commands often correspond to large C-code with minor varitaions in C-cod
 | I | case-insensitive |
 | _number_ | replace only _number_th match |
 
-
+basic indentation is made for most commands in produced C file. Error checking is minimal and user supplied sed file is assumed to be correct.
 
