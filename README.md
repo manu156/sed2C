@@ -1,4 +1,6 @@
 # sed2C
+A lex-yacc program to convert Sed to C (Practice & educational purpose).
+__Note:__ The code is incomplete and works only for some cases.
 ## Instructions
 compile using makefile:
 
